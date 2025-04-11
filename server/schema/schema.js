@@ -1,38 +1,11 @@
 
 //mongoose models
 const Project = require('../models/Project');
-const Client = require('../models/Client'); 
-
-
-
+const Client = require('../models/Client');
 
 const { GraphQLObjectType,GraphQLString, GraphQLSchema, GraphQLID, GraphQLList, GraphQLNonNull, GraphQLEnumType } = require('graphql');
 
-
-
-//project type
-
-
-const ProjectType = new GraphQLObjectType({
-    name: 'Project',
-    fields: ()=>({
-        id: {type: GraphQLID},
-        name : {type: GraphQLString},
-        description : {type: GraphQLString},
-        status : {type: GraphQLString},
-        Client: {
-            type: ClientType,
-            resolve(parent,args){
-            return Client.findById(parent.clientId);
-            }
-        },
-
-    })
-});
-
-
 //client type
-
 const ClientType = new GraphQLObjectType({
     name: 'Client',
     fields: ()=>({
@@ -40,8 +13,23 @@ const ClientType = new GraphQLObjectType({
         name : {type: GraphQLString},
         email : {type: GraphQLString},
         phone : {type: GraphQLString},
-       
+    })
+});
 
+//project type
+const ProjectType = new GraphQLObjectType({
+    name: 'Project',
+    fields: ()=>({
+        id: {type: GraphQLID},
+        name : {type: GraphQLString},
+        description : {type: GraphQLString},
+        status : {type: GraphQLString},
+        client: {
+            type: ClientType,
+            resolve(parent,args){
+                return Client.findById(parent.clientId);
+            }
+        },
     })
 });
 
@@ -105,7 +93,7 @@ const mutation = new GraphQLObjectType({
             resolve(parent,args){
                 Project.find({ clientId: args.id }).then((projects) => {
                     projects.forEach((project) => {
-                      project.remove();
+                      project.deleteOne();
                     });
                   });
                 return Client.findByIdAndDelete(args.id);
@@ -182,21 +170,22 @@ const mutation = new GraphQLObjectType({
                             'completed': {value: 'Completed'},
                         }
                     }),
-                    defaultValue: 'Not Started'
                 },
-               
+                clientId: {type: GraphQLID},
             },
             resolve(parent,args){
-                return Project.findByIdAndUpdate(args.id,{
-                    $set: {
-                    name: args.name,
-                    description: args.description,
-                    status: args.status,
-                    clientId: args.clientId,
+                return Project.findByIdAndUpdate(
+                    args.id,
+                    {
+                        $set: {
+                            name: args.name,
+                            description: args.description,
+                            status: args.status,
+                            clientId: args.clientId,
+                        },
                     },
-                },
                     {new: true}
-              );
+                );
             }
         },
     }
